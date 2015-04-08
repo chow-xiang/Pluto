@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en" ng-app>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+
+    <!-- pluto -->
+    <script type="text/javascript" src="javascripts/Pluto.js"></script>
+</head>
+<body screen_capture_injected="true" p-app="pluto-first">
+    <h1>Pluto</h1>
+    <div p-controller="test">
+        <input p-model="test-input" value="pluto" type="text">
+        <h3>test:{{test-input}}</h3>
+
+        <select p-model="test-select">
+            <option value="{{test-input}}">1</option>
+            <option value="{{test2}}">2</option>
+            <option value="{{test3}}">3</option>
+        </select>
+        <h3>test2:{{test-select}}</h3>
+
+        <input type="radio" p-model="test3" name="test3" value="1">
+        <input type="radio" p-model="test4" name="test3" value="2">
+        <input type="radio" p-model="test5" name="test3" value="3">
+        <div>test3:{{test3}}</div>
+
+        <input type="checkbox" p-model="test6" name="test4" value="4">
+        <input type="checkbox" p-model="test7" name="test4" value="5">
+        <input type="checkbox" p-model="test8" name="test4" value="6">
+        <div>test4:{{test4}}</div>
+
+        <textarea p-model="test9"></textarea>
+        <div>test5:{{test5}}</div>
+
+        <select p-model="test10" multiple >
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+        </select>
+        <div>{{test6}}</div>
+
+
+
+        <div id="test7">{{test7}}</div>
+    </div>
+
+    <div p-controller="test2">
+        <input p-model="test-input">
+        <h3>{{test-input}}</h3>
+    </div>
+</body>
+<script type="text/javascript">
+    // var nodes = document.querySelector("[p-controller] *");
+    // for(var i=0;i<nodes.length;i++){
+    //    nodes.addEventListener("change",function(event){
+    //         console.log(event);
+    //         console.log(event.currentTarget);
+    //     },true);
+    // }
+    // document.querySelector("h3").firstChild.addEventListener("change",function(event){
+    //         console.log(event);
+    //         console.log(event.currentTarget);
+    //     },false);
+    
+
+    // var event = document.createEvent('HTMLEvents');
+    // event.initEvent("change", true, true);
+    // event.eventType = 'message';
+    // document.querySelector("h3").firstChild.dispatchEvent( event );
+
+
+    ;+function(){
+        Pluto
+        .define("test",function($scope){
+            $scope["test-input"] = "best!";
+        })
+        .define("test2",function($scope){
+            $scope["test-input"] = "best!!!";
+        });
+    }();
+    
+    /**
+     * select,multiple-select
+     */
+    var model = {
+        "select-test":document.querySelector("select").value,
+        "input-test":document.querySelector("[type=text]").value,
+        "textarea-test":document.querySelector("textarea").value,
+        "radio-test":document.querySelector("[type=radio]").checked ? document.querySelector("[type=radio]").value : undefined,
+        "checkbox-test":document.querySelector("[type=checkbox]").checked ? document.querySelector("[type=checkbox]").value : undefined
+    };
+    // Object.defineProperty(document.querySelector("select"),"value",{
+    //     get: function(){
+    //        // return this.querySelectorAll("option")[this.selectedIndex].value;
+    //        return model["select-test"];
+    //     },
+    //     set: function(val){
+    //         val instanceof Array ? undefined : val = [val];
+    //         model["select-test"] = [];
+    //         for(var j=0;j<val.length;j++){
+    //             for(var i=0;i<this.querySelectorAll("option").length;i++){
+    //                 if(this.querySelectorAll("option")[i].value == val[j]){
+    //                     this.querySelectorAll("option")[i].selected = true;
+    //                     model["select-test"].push(this.querySelectorAll("option")[i].value);
+    //                     // update
+    //                 }
+    //             }
+    //         }
+    //     }
+    // });
+    // Object.defineProperty(document.querySelector("select[multiple]"),"value",{
+    //     get: function(){
+    //        // return this.querySelectorAll("option")[this.selectedIndex].value;
+    //        return model["select-test"];
+    //     },
+    //     set: function(val){
+    //         val instanceof Array ? undefined : val = [val];
+    //         model["select-test"] = [];
+    //         for(var j=0;j<val.length;j++){
+    //             for(var i=0;i<this.querySelectorAll("option").length;i++){
+    //                 if(this.querySelectorAll("option")[i].value == val[j]){
+    //                     this.querySelectorAll("option")[i].selected = true;
+    //                     model["select-test"].push( val[j] );
+    //                 }
+    //             }
+    //         }
+    //         if(!!model["select-test"].length){
+    //             // update
+    //         }
+    //     }
+    // });
+
+    // /**
+    //  * input,textarea
+    //  */
+    // Object.defineProperty(document.querySelector("[type=text]"),"value",{
+    //     get: function(){
+    //        return model["input-test"];
+    //     },
+    //     set: function(val){
+    //         document.querySelector("[type=text]").setAttribute("value",val);
+    //         // document.querySelector("[type=text]").setRangeText("" + val,0,model["input-test"].length);
+    //         model["input-test"] = val;
+    //         // update
+    //     }
+    // });
+    // Object.defineProperty(document.querySelector("textarea"),"value",{
+    //     get: function(){
+    //        return model["textarea-test"];
+    //     },
+    //     set: function(val){
+    //         document.querySelector("textarea").setRangeText("" + val,0,model["textarea-test"].length);
+    //         model["textarea-test"] = val;
+    //         // update
+    //     }
+    // });
+
+    // /**
+    //  * radio,checkbox
+    //  */
+    // for(var i=0;i<document.querySelectorAll("[type=radio]").length;i++){
+    //     document.querySelectorAll("[type=radio]")[i].onchange = function(event){
+    //         model["radio-test"] = this.checked ? this.value : undefined;
+    //     }
+    // }
+</script>
+</html>
+ <!--
+=========================
+    \   ^__^
+     \  (**)\__$__$__
+        (__)\       )\/\
+         U  ||------|
+            ||     || 
+==========================
+-->
