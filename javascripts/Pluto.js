@@ -46,17 +46,8 @@
 * 
 *
 *
-***********************正则************************
+***********************正则********************************
 * 检查是否以modelName开头 , /^a:(\S*)$/.exec("a:ccc")
-*
-***********************触发的事件列************************
-*1,input,textarea : oninput
-*2,select : onselect
-*3,radio,checkbox : onchange
-*
-***********************验证涉及************************
-*setCustomValidity
-*reportValidity
 ***********************************************************
 **/
 
@@ -66,6 +57,62 @@
  ************************************************************
  * Pluto主体部分 begin
  */
+ /*查找所有的element*/
+function allDom(element){
+    var result = [];
+    var walker = document.createTreeWalker(element,NodeFilter.SHOW_ALL,null,false);
+    var node = walker.nextNode();
+    while(node){
+        result.push(node);
+        node = walker.nextNode();
+    }
+    return result;
+}
+
+/*关于绑定事件的方法*/
+var on = function(){
+    var onString;
+    if(document.addEventListener){
+        onString = ["element","type","callback","useCapture",
+                    "'use strict';" +
+                    "element.addEventListener(type,callback,useCapture);"];
+    }else{
+        onString = ["element","type","callback","'use strict';" +
+                    "element.attachEvent('on' + type,callback)"];
+    }
+    return Function.apply(function(){},onString);
+}();
+
+/*关于element绑定的事件列表*/
+var bindEvents = function(){
+    /*判断是不是ie浏览器*/
+    if(!/MSIE ([\d.]+)/.exec(navigator.userAgent)){
+        return {
+            "text" : ["input","compositionstart","compositionend","DOMAutoComplete"],
+            "textarea" : ["input","compositionstart","compositionend","DOMAutoComplete"],
+            "select-one" : ["change"],
+            "select-multiple" : ["change"],
+            "radio" : ["click"],
+            "checkbox" : ["change"],
+            "password" : []
+        }
+    }else{
+        return {
+            "text" : ["input","selectionchange"],
+            "textarea" : ["input","compositionstart","compositionend","DOMAutoComplete"],
+            "select-one" : ["change"],
+            "select-multiple" : ["change"],
+            "radio" : ["click"],
+            "checkbox" : ["change"],
+            "password" : []
+        }
+    }
+}();
+
+
+
+
+
 var PlutoUtils = {
     initConfig : function(){
         /*将array的push方法添加到NodeList对象上去*/
@@ -84,29 +131,7 @@ var PlutoUtils = {
         /*自我修正*/
         this.$newGetSetAdaptor();
 
-        /*根据浏览器查看是否有底层observe方法*/
-        // if(Object.observe){
-        //     PlutoUtils.config["oberve"] = Object.observe;
-        // }else if(Object.watch){
-        //     PlutoUtils.config["oberve"] = (function(){
-        //         for(var key in this){
-        //             this.watch(key,arguments[1]);
-        //         }
-        //     }).call
-        // }else{
-        //     PlutoUtils.config["oberve"] = function(){
-        //         for(var key in this){
-                    
-        //         }
-        //     }
-        // }
-    },
-    /**
-     * 绑定事件 也就是说element根据哪个事件驱动
-     * 
-     */
-    $boundevents : function(element,callback){
-        element.addeventsListener("oninput",callback);
+        /*根据浏览器判断各种元素需要绑定的事件*/
     },
     /**
      * 关于元素value的重写过程
@@ -140,7 +165,12 @@ var PlutoUtils = {
             this.$dependence = [];
         }
         $model.prototype = {
-            $addDependence : function(dependenceElement,sign){
+            /**
+            *element依赖于这个model
+            *@param : dependenceElement : 元素
+            *@param : sign : 元素是不是text类型
+            */
+            $sub : function(dependenceElement){
                 var tag = this;
                 var dependProcess = {
                     "normal" : function(dependenceElement){
@@ -181,15 +211,29 @@ var PlutoUtils = {
                     }
                 };
                 /*适配一个方法*/
+                var sign = dependenceElement.nodeName === "#text" ? "#text" : "normal";
                 dependProcess[sign](dependenceElement);
+            },
+            $unSub : function(dependenceElement){
+
             },
             $addHandler : function(callback){
                 this.$events.push(callback);
             },
-            $triggerHandler : function(element){
+            $pub : function(element){
                 var handlers = this.$events;
                 for(var i=0;i<handlers.length;i++){
                     handlers[i]( this ,element);
+                }
+            },
+            $boundEventEngine : function(callback){
+                var eventNames = bindEvents[ this.element.type ];
+                for(var i=0;i<eventNames.length;i++){
+                    if(eventNames[i] === "selectionchange"){
+                        on(document,"selectionchange",callback,false);
+                        continue;
+                    }
+                    on(this.element,eventNames[i],callback,false);
                 }
             }
         }
@@ -221,21 +265,11 @@ var PlutoUtils = {
                     models[ modelName ] = PlutoUtils.$modelFactory(controllerElement, modelElements[i] ,modelName);
                 }
                 
-                var childrens = controllerElement.querySelectorAll( "[p-controller = " + controllerName + "] *" );
-                /*外层缝隙也需要扫描*/
-                // childrens.push(controllerElement);
+                var childrens = allDom(controllerElement);
                 /*逐个扫描*/
                 for(var i=0;i<childrens.length;i++){
-                    for(var key in models){
-                        models[key].$addDependence(childrens[i],"normal");     
-                        /*扫描缝隙，从所有的children下手，查找他们的children中是否有textNode*/
-                        var node = childrens[i].firstChild;
-                        while(node){
-                            if(node.nodeName === "#text"){
-                                models[key].$addDependence(node,"#text");
-                            }
-                            node =node.nextSibling;
-                        }
+                    for(var key in models){    
+                        models[key].$sub(childrens[i]);
                     }
                 }
                 return models;
@@ -268,10 +302,10 @@ var PlutoUtils = {
              * @param Function callback : 要压入的handler
              */
             $watch : function(modelName,callback){
-                controller.$models[modelName] && controller.$models[modelName].$events.push(callback.bind(this));
+                controller.$models[modelName].$events.push( callback.bind(this) );
             },
             /**
-             * 将元素注入scope已有的依赖 注意 ：如果你注入的model元素已存在，会覆盖原先的element
+             * 将元素注入scope的依赖 注意 ：如果你注入的元素对应的model已存在，会覆盖原先的element
              * @param  HTML element
              * @param  Function callback
              */
@@ -289,7 +323,7 @@ var PlutoUtils = {
                             "get" : Object.getOwnPropertyDescriptor(element.constructor.prototype,"value").get,
                             "set" : function(val){
                                 Object.getOwnPropertyDescriptor(element.constructor.prototype,"value").set.call(this,val);
-                                models[this.getAttribute("p-model")].$triggerHandler(this);
+                                models[this.getAttribute("p-model")].$pub(this);
                             }
                         };
                     }
@@ -305,11 +339,11 @@ var PlutoUtils = {
                         },
                         set : function(val){
                             models[injectModelName].element.value = val;
-                            models[injectModelName].$triggerHandler(this);
+                            models[injectModelName].$pub(this);
                         }
                     });
                     /*将model发生变化时，改变element的value以及刷新页面的事件注入handlers*/
-                    tag.$watch.call(tag,injectModelName,function(model,element){
+                    tag.$watch(injectModelName,function(model,element){
                         var maps = model.$dependence
                             ,value = eval("this['" + model.name + "']");
                         for(var i=0;i<maps.length;i++){
@@ -321,14 +355,27 @@ var PlutoUtils = {
                         }
                     });
                     /*元素绑定事件*/
-                    element.oninput = function(){
-                        models[this.getAttribute("p-model")].$triggerHandler(this);
-                    }
+                    models[injectModelName].$boundEventEngine(function(){
+                        models[injectModelName].$pub(this);
+                    });
                 }
                 /*如果没有*/
                 else{
                     controller = this.$controllerFactorty(controllerName);
                     this.$injectElement(element);
+                }
+            },
+            $toDepend : function(deoendElement,modelName){
+                /*判断modelname是不是字符串，统一改成数组操作*/
+                modelName.push || ( modelName = [modelName] );
+
+                for(var i=0;i<modelName.length;i++){
+                    var model = controller.$models[modelName[i]];
+                    /*不存在继续循环*/
+                    // !!model || continue;
+
+                    /*存在注入依赖*/
+                    /*首先扫描元素以及*/
                 }
             }
         };
@@ -351,12 +398,11 @@ var Pluto = {
         /*回调*/
         controllerManager($scope);
         return this;
-    },
+    }
 };
 /**
  *
  * Pluto主体部分end
  * ***********************************************************/
  
-
  PlutoUtils.initConfig();

@@ -12,6 +12,7 @@
     <div p-controller="test">
         <input p-model="test-input" value="pluto" type="text">
         <h3>test:{{test-input}}</h3>
+        test:{{test-input}}
 
         <select p-model="test-select">
             <option value="{{test-input}}">1</option>
@@ -68,6 +69,30 @@
     // event.initEvent("change", true, true);
     // event.eventType = 'message';
     // document.querySelector("h3").firstChild.dispatchEvent( event );
+
+    var nodeIterator = document.createNodeIterator(
+        document.querySelector("[p-controller]"),
+        NodeFilter.SHOW_ALL,
+        null,
+        false
+    );
+    var pars = [];
+    var currentNode;
+
+    while (currentNode = nodeIterator.nextNode()) {
+      pars.push(currentNode);
+    }
+
+    function ShowAllDomsByTreeWalker(element){
+        var result = [];
+        var walker = document.createTreeWalker(element,NodeFilter.SHOW_ALL,null,false);
+        var node = walker.nextNode();
+        while(node){
+            result.push(node);
+            node = walker.nextNode();
+        }
+        console.log(result)
+    }
 
 
     ;+function(){
